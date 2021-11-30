@@ -1,3 +1,63 @@
+use std::error::Error;
+use std::io::{self};
+use std::time::Instant;
+
+type Star = fn() -> Result<(), Box<dyn Error + 'static>>;
+
+fn default_star() -> Result<(), Box<dyn Error + 'static>> {
+    println!("Invalid day or not published yet");
+    Ok(())
+}
+
 fn main() {
-    println!("Hello, world!");
+    let mut buffer = String::new();
+    let mut day: usize = 1;
+
+    println!("Welcome to Advent of Code, 2021 edition!");
+    println!("Please enter the day number: ");
+
+    match io::stdin().read_line(&mut buffer) {
+        Ok(_) => {
+            // Must use trim_end or the line ending might mess up with the parsing function
+            day = buffer.trim_end().parse().unwrap_or(1);
+            println!("Attempting to run day{}...", day);
+        }
+        Err(error) => println!("Error: {}, defaulting to day1", error),
+    }
+
+    let first_star: Star;
+    let second_star: Star;
+    match day {
+        _ => {
+            println!("Executing nothing");
+            first_star = default_star;
+            second_star = default_star;
+        }
+    }
+
+    let now = Instant::now();
+    match first_star() {
+        Err(x) => {
+            println!("Error: {:?}", x);
+        }
+        _ => {
+            println!("First star: Success!");
+        }
+    }
+
+    match second_star() {
+        Err(x) => {
+            println!("Error {:?}", x);
+        }
+        _ => {
+            println!("Second star: Success!");
+        }
+    }
+
+    let end = now.elapsed();
+    println!(
+        "Duration: {}sec {}millisec",
+        end.as_secs(),
+        end.subsec_millis()
+    );
 }
