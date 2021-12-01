@@ -4,7 +4,7 @@ use std::path::Path;
 
 fn get_input() -> Vec<usize> {
     fs::read_to_string(Path::new("./data/day1.input"))
-        .unwrap_or(String::from(""))
+        .expect("Something went wrong with the input")
         .trim()
         .split('\n')
         .map(|depth| (depth.trim().parse::<usize>().unwrap_or(0)))
@@ -34,10 +34,8 @@ pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
 
     for i in 0..depths.len() - 2 {
         let sum = depths[i] + depths[i + 1] + depths[i + 2];
-        if previous != 0 {
-            if previous < sum {
-                count += 1;
-            }
+        if previous != 0 && previous < sum {
+            count += 1;
         }
         previous = sum;
     }
