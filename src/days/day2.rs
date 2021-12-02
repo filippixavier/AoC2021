@@ -12,7 +12,7 @@ fn get_input() -> Vec<(i32, Direction)> {
     fs::read_to_string(Path::new("./data/day2.input"))
         .expect("Something wrong with input")
         .trim()
-        .split('\n')
+        .lines()
         .map(|instruction| {
             let mut splitted = instruction.trim().split(' ');
             let direction = splitted.next().unwrap();

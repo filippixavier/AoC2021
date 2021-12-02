@@ -6,7 +6,7 @@ fn get_input() -> Vec<usize> {
     fs::read_to_string(Path::new("./data/day1.input"))
         .expect("Something went wrong with the input")
         .trim()
-        .split('\n')
+        .lines()
         .map(|depth| (depth.trim().parse::<usize>().unwrap_or(0)))
         .collect()
 }
