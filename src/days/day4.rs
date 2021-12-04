@@ -37,8 +37,6 @@ fn get_boards() -> (Vec<Board>, Vec<usize>) {
 fn check_board(board: Board) -> Option<usize> {
     let len = board.len();
 
-    // let mut diag1_none = true;
-    // let mut diag2_none = true;
     let mut row_none = true;
     let mut col_none = true;
 
@@ -57,18 +55,9 @@ fn check_board(board: Board) -> Option<usize> {
         if row_none || col_none {
             break;
         }
-
-        /*if board[i][i].is_some() {
-            diag1_none = false
-        }
-        if board[i][len - 1 - i].is_some() {
-            diag2_none = false;
-        }*/
     }
 
-    if row_none || col_none
-    /*|| diag1_none || diag2_none*/
-    {
+    if row_none || col_none {
         let sum = board.iter().fold(0, |acc, x| {
             acc + x.iter().fold(0, |sub, y| sub + y.unwrap_or(0))
         });
@@ -107,5 +96,45 @@ pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
 }
 
 pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
+    let (boards, draw) = get_boards();
+
+    let mut boards_with_status: Vec<(bool, Board)> =
+        boards.into_iter().map(|board| (false, board)).collect();
+
+    let mut last_round = false;
+
+    'named: for num in draw {
+        boards_with_status = boards_with_status
+            .into_iter()
+            .filter(|(status, _)| !status)
+            .collect();
+        if boards_with_status.len() == 1 {
+            last_round = true;
+        }
+
+        for (status, board) in boards_with_status.iter_mut() {
+            for line in board.iter_mut() {
+                let mut index = None;
+                for (i, elem) in line.iter().enumerate() {
+                    if let Some(val) = elem {
+                        if *val == num {
+                            index = Some(i);
+                            break;
+                        }
+                    }
+                }
+                if let Some(i) = index {
+                    line[i] = None;
+                }
+            }
+            if let Some(unmarked_sum) = check_board(board.to_vec()) {
+                *status = true;
+                if last_round {
+                    println!("Last man standing: {}", unmarked_sum * num);
+                    break 'named;
+                }
+            }
+        }
+    }
     Ok(())
 }
