@@ -25,11 +25,30 @@ pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
         }
     }
 
-    println!("{}", min_fuel.unwrap());
+    println!("Minimal fuel comsumption: {}", min_fuel.unwrap());
 
     Ok(())
 }
 
 pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
+    let crabs = get_input();
+    let max = crabs.iter().max().unwrap();
+
+    let mut min_fuel: Option<isize> = None;
+    for i in 0..=*max {
+        let fuel = crabs.iter().fold(0, |acc, x| {
+            let distance = (x - i).abs();
+            let fuel_value = distance * (distance + 1) / 2;
+            acc + fuel_value
+        });
+        min_fuel = if let Some(current) = min_fuel {
+            Some(std::cmp::min(current, fuel))
+        } else {
+            Some(fuel)
+        }
+    }
+
+    println!("Minimal fuel comsumption: {}", min_fuel.unwrap());
+
     Ok(())
 }
