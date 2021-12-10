@@ -115,10 +115,118 @@ pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
         }
     }
 
-    println!("New High Score! {}", score);
+    println!("Syntax Checker: New High Score! {}", score);
     Ok(())
 }
 
 pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
+    let mut scores: Vec<u64> = vec![];
+    let input = get_input();
+    for line in input {
+        let mut stored_close = vec![];
+        let mut expected_close = None;
+        let mut complete = true;
+        for symbol in line {
+            match symbol {
+                Paro => {
+                    if let Some(exp) = expected_close {
+                        stored_close.push(exp)
+                    }
+                    expected_close = Some(Parc)
+                }
+                Parc => {
+                    if let Some(close) = expected_close {
+                        if close != Parc {
+                            complete = false;
+                            break;
+                        } else if let Some(previous) = stored_close.pop() {
+                            expected_close = Some(previous);
+                        } else {
+                            expected_close = None;
+                        }
+                    }
+                }
+                Brao => {
+                    if let Some(exp) = expected_close {
+                        stored_close.push(exp)
+                    }
+                    expected_close = Some(Brac)
+                }
+                Brac => {
+                    if let Some(close) = expected_close {
+                        if close != Brac {
+                            complete = false;
+                            break;
+                        } else if let Some(previous) = stored_close.pop() {
+                            expected_close = Some(previous);
+                        } else {
+                            expected_close = None;
+                        }
+                    }
+                }
+                Curo => {
+                    if let Some(exp) = expected_close {
+                        stored_close.push(exp)
+                    }
+                    expected_close = Some(Curc)
+                }
+                Curc => {
+                    if let Some(close) = expected_close {
+                        if close != Curc {
+                            complete = false;
+                            break;
+                        } else if let Some(previous) = stored_close.pop() {
+                            expected_close = Some(previous);
+                        } else {
+                            expected_close = None;
+                        }
+                    }
+                }
+                Cheo => {
+                    if let Some(exp) = expected_close {
+                        stored_close.push(exp)
+                    }
+                    expected_close = Some(Chec)
+                }
+                Chec => {
+                    if let Some(close) = expected_close {
+                        if close != Chec {
+                            complete = false;
+                            break;
+                        } else if let Some(previous) = stored_close.pop() {
+                            expected_close = Some(previous);
+                        } else {
+                            expected_close = None;
+                        }
+                    }
+                }
+            }
+        }
+
+        if let Some(exp) = expected_close {
+            stored_close.push(exp);
+        }
+
+        if complete {
+            scores.push(stored_close.iter().rev().fold(0, |acc, val| {
+                acc * 5
+                    + match val {
+                        Parc => 1,
+                        Brac => 2,
+                        Curc => 3,
+                        Chec => 4,
+                        _ => unreachable!(),
+                    }
+            }));
+        }
+    }
+
+    scores.sort_unstable();
+
+    println!(
+        "Autocompleter: New High Score! {:?}",
+        scores[scores.len() / 2]
+    );
+
     Ok(())
 }
