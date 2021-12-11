@@ -110,5 +110,94 @@ pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
 }
 
 pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
+    let mut octopuses = get_input();
+    let mut turns_not_sync = 0;
+    loop {
+        turns_not_sync += 1;
+        let mut shiner = vec![];
+        for (x, line) in octopuses.iter_mut().enumerate() {
+            for (y, col) in line.iter_mut().enumerate() {
+                *col += 1;
+                if *col == 10 {
+                    shiner.push((x, y));
+                }
+            }
+        }
+        while !shiner.is_empty() {
+            let (line, col) = shiner.pop().unwrap();
+            if line > 0 {
+                let x = line - 1;
+                if col > 0 {
+                    let y = col - 1;
+                    octopuses[x][y] += 1;
+                    if octopuses[x][y] == 10 {
+                        shiner.push((x, y));
+                    }
+                }
+                octopuses[x][col] += 1;
+                if octopuses[x][col] == 10 {
+                    shiner.push((x, col));
+                }
+                if col < MAX_LEN - 1 {
+                    let y = col + 1;
+                    octopuses[x][y] += 1;
+                    if octopuses[x][y] == 10 {
+                        shiner.push((x, y));
+                    }
+                }
+            }
+            if line < MAX_LEN - 1 {
+                let x = line + 1;
+                if col > 0 {
+                    let y = col - 1;
+                    octopuses[x][y] += 1;
+                    if octopuses[x][y] == 10 {
+                        shiner.push((x, y));
+                    }
+                }
+                octopuses[x][col] += 1;
+                if octopuses[x][col] == 10 {
+                    shiner.push((x, col));
+                }
+                if col < MAX_LEN - 1 {
+                    let y = col + 1;
+                    octopuses[x][y] += 1;
+                    if octopuses[x][y] == 10 {
+                        shiner.push((x, y));
+                    }
+                }
+            }
+            if col > 0 {
+                let y = col - 1;
+                octopuses[line][y] += 1;
+                if octopuses[line][y] == 10 {
+                    shiner.push((line, y));
+                }
+            }
+            if col < MAX_LEN - 1 {
+                let y = col + 1;
+                octopuses[line][y] += 1;
+                if octopuses[line][y] == 10 {
+                    shiner.push((line, y));
+                }
+            }
+        }
+        let mut all_sync = true;
+
+        for line in octopuses.iter_mut() {
+            for col in line.iter_mut() {
+                if *col >= 10 {
+                    *col = 0;
+                }
+                if *col != 0 {
+                    all_sync = false;
+                }
+            }
+        }
+        if all_sync {
+            break;
+        }
+    }
+    println!("Wait {} turns before lights", turns_not_sync);
     Ok(())
 }
