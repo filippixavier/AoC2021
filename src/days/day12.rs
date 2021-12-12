@@ -52,6 +52,44 @@ fn bfs(
     path_count
 }
 
+fn bfs_special(
+    current_node: String,
+    map: &HashMap<String, Vec<String>>,
+    visited_small: &mut HashSet<String>,
+    visited_twice: bool,
+    mut path_count: usize,
+) -> usize {
+    if &current_node == "end" {
+        return path_count + 1;
+    }
+    let mut twice = visited_twice;
+    let mut was_inserted = false;
+
+    if current_node.chars().next().unwrap().is_ascii_lowercase() {
+        if visited_small.get(&current_node).is_some() {
+            if twice || &current_node == "start" {
+                return path_count;
+            }
+            twice = true;
+        } else {
+            visited_small.insert(current_node.clone());
+            was_inserted = true;
+        }
+    }
+
+    let next_targets = map.get(&current_node).unwrap();
+
+    for next in next_targets {
+        path_count = bfs_special(next.to_string(), map, visited_small, twice, path_count);
+    }
+
+    if was_inserted {
+        visited_small.remove(&current_node);
+    }
+
+    path_count
+}
+
 pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
     let map = get_input();
 
@@ -63,5 +101,11 @@ pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
 }
 
 pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
+    let map = get_input();
+
+    let count = bfs_special(String::from("start"), &map, &mut HashSet::new(), false, 0);
+
+    println!("Number of path is: {}", count);
+
     Ok(())
 }
