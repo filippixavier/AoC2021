@@ -58,5 +58,46 @@ pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
 }
 
 pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
+    let (mut map, folds) = get_input();
+
+    for (x_axe, value) in folds {
+        let (fixed, moved): (Vec<_>, Vec<_>) =
+            map.into_iter()
+                .partition(|(x, y)| if x_axe { *x < value } else { *y < value });
+        let fixed = fixed.into_iter().collect::<HashSet<(usize, usize)>>();
+        let moved = moved
+            .into_iter()
+            .map(|(x, y)| {
+                if x_axe {
+                    (value - (x - value), y)
+                } else {
+                    (x, value - (y - value))
+                }
+            })
+            .collect::<HashSet<(usize, usize)>>();
+        map = fixed.union(&moved).cloned().collect();
+    }
+    use std::cmp::*;
+    let (min_x, min_y, max_x, max_y) =
+        map.iter()
+            .fold((0, 0, 0, 0), |(min_x, min_y, max_x, max_y), (x, y)| {
+                (
+                    min(min_x, *x),
+                    min(min_y, *y),
+                    max(max_x, *x),
+                    max(max_y, *y),
+                )
+            });
+
+    let mut text = String::new();
+    for y in min_y..=max_y {
+        for x in min_x..=max_x {
+            text += if map.contains(&(x, y)) { "#" } else { " " }
+        }
+        text += "\n";
+    }
+
+    print!("{}", text);
+
     Ok(())
 }
