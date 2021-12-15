@@ -21,7 +21,6 @@ fn a_star(risk_level: &[Vec<u8>]) -> usize {
 
     let mut g_score: HashMap<(usize, usize), usize> = HashMap::new();
     g_score.insert((0, 0), 0);
-    // let mut f_score: HashMap<(usize, usize), usize> = HashMap::new();
 
     while !open_set.is_empty() {
         open_set.sort_unstable_by(|a, b| g_score.get(b).unwrap().cmp(g_score.get(a).unwrap()));
@@ -83,5 +82,38 @@ pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
 }
 
 pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
+    let risk_level = get_input();
+    let mut big_risk = vec![];
+
+    for risk_line in risk_level.iter() {
+        let mut line = vec![];
+        for j in 0..5 {
+            let mut sub = risk_line
+                .iter()
+                .cloned()
+                .map(|x| if x + j > 9 { x + j - 9 } else { x + j })
+                .collect();
+            line.append(&mut sub);
+        }
+        big_risk.push(line);
+    }
+
+    for i in 1..5 {
+        for j in 0..risk_level.len() {
+            let line = big_risk[j]
+                .iter()
+                .cloned()
+                .map(|x| {
+                    if x + i as u8 > 9 {
+                        x + i - 9
+                    } else {
+                        x + i as u8
+                    }
+                })
+                .collect();
+            big_risk.push(line);
+        }
+    }
+    println!("Lowest total risk in big map: {}", a_star(&big_risk));
     Ok(())
 }
