@@ -20,8 +20,6 @@ fn get_input() -> ((isize, isize), (isize, isize)) {
 pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
     let ((x_min, x_max), (y_min, y_max)) = get_input();
 
-    println!("({} {}), ({}, {})", x_min, x_max, y_min, y_max);
-
     let mut initial_x = 0;
     let mut initial_y = 0;
     let mut max_height = 0;
@@ -62,5 +60,66 @@ pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
 }
 
 pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
+    let ((x_min, x_max), (y_min, y_max)) = get_input();
+
+    let mut all_x = vec![];
+    let mut all_y = vec![];
+
+    let count = (1..=x_max).collect::<Vec<isize>>();
+
+    for i in count.iter().rev() {
+        let mut vel_x = *i;
+        let mut pos = 0;
+        while vel_x > 0 {
+            pos += vel_x;
+            if pos > x_max {
+                break;
+            }
+            if pos >= x_min && pos <= x_max {
+                all_x.push(i);
+                break;
+            }
+            vel_x -= 1;
+        }
+    }
+
+    for star_vel in y_min..7_000 {
+        let mut pos = 0;
+        let mut vel = star_vel;
+
+        while pos > y_min {
+            pos += vel;
+            vel -= 1;
+            if pos <= y_max && pos >= y_min {
+                all_y.push(star_vel);
+                break;
+            }
+        }
+    }
+
+    let mut count_unique = 0;
+    let mut all_cut = vec![];
+
+    for &vel_x in all_x {
+        for &vel_y in &all_y {
+            let mut vel = (vel_x, vel_y);
+            let mut pos = (0, 0);
+
+            while pos.0 <= x_max && pos.1 >= y_min {
+                pos.0 += vel.0;
+                pos.1 += vel.1;
+                vel.0 -= if vel.0 > 0 { 1 } else { 0 };
+                vel.1 -= 1;
+                if pos.0 >= x_min && pos.0 <= x_max && pos.1 >= y_min && pos.1 <= y_max {
+                    count_unique += 1;
+                    all_cut.push((vel_x, vel_y));
+                    break;
+                }
+            }
+        }
+    }
+
+    println!("Unique valid velocity: {}", count_unique);
+
     Ok(())
 }
