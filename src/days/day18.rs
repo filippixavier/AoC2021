@@ -216,5 +216,22 @@ pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
 }
 
 pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
+    let operations = get_input();
+    let mut max_magni = 0;
+
+    for i in 0..operations.len() {
+        for j in 0..operations.len() {
+            if i == j {
+                continue;
+            }
+            let a = operations[i].clone();
+            let b = operations[j].clone();
+
+            max_magni = max_magni.max(a.add(&b).reduce().get_magnitude());
+        }
+    }
+
+    println!("Max magni: {}", max_magni);
+
     Ok(())
 }
