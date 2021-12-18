@@ -3,18 +3,19 @@ use std::fmt;
 
 const INPUT: &str = include_str!("../../data/day18.input");
 
-#[derive(Debug, Clone, PartialEq)]
-enum SnailPair {
-    Solo(usize),
-    Pair(Box<SnailPair>, Box<SnailPair>),
-}
-
 impl fmt::Display for SnailPair {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.get_string())
     }
 }
 
+#[derive(Clone)]
+enum SnailPair {
+    Solo(usize),
+    Pair(Box<SnailPair>, Box<SnailPair>),
+}
+
+use SnailPair::*;
 impl SnailPair {
     fn add(&self, other: &Self) -> Self {
         Pair(Box::new(self.clone()), Box::new(other.clone()))
@@ -29,8 +30,96 @@ impl SnailPair {
         }
     }
 
-    fn reduce(&self) -> Self {
-        let mut next = self.clone();
+    fn check_explosion(self, deep: usize) -> (Self, Option<(usize, usize)>) {
+        let next;
+        match self {
+            Solo(x) => {
+                return (Solo(x), None);
+            }
+            Pair(x, y) => {
+                let mut sub_l = *x;
+                let mut sub_r = *y;
+
+                if let Solo(left) = sub_l {
+                    if let Solo(right) = sub_r {
+                        if deep == 4 {
+                            return (Solo(0), Some((left, right)));
+                        }
+                    }
+                }
+                let (pair_l, rest_l) = sub_l.check_explosion(deep + 1);
+                sub_l = pair_l;
+                if let Some((x, y)) = rest_l {
+                    if y != 0 {
+                        sub_r = sub_r.apply_overflow(y, true);
+                    }
+                    return (Pair(Box::new(sub_l), Box::new(sub_r)), Some((x, 0)));
+                } else {
+                    let (pair_r, rest_r) = sub_r.check_explosion(deep + 1);
+                    sub_r = pair_r;
+                    if let Some((x, y)) = rest_r {
+                        if x != 0 {
+                            sub_l = sub_l.apply_overflow(x, false);
+                        }
+                        return (Pair(Box::new(sub_l.clone()), Box::new(sub_r)), Some((0, y)));
+                    }
+                }
+
+                next = Pair(Box::new(sub_l), Box::new(sub_r));
+            }
+        }
+
+        (next, None)
+    }
+
+    fn check_split(self) -> (Self, bool) {
+        match self {
+            Solo(x) => {
+                if x >= 10 {
+                    let temp = x as f32;
+                    let left = (temp / 2.0).floor() as usize;
+                    let right = (temp / 2.0).ceil() as usize;
+
+                    return (Pair(Box::new(Solo(left)), Box::new(Solo(right))), true);
+                }
+                return (Solo(x), false);
+            }
+            Pair(x, y) => {
+                let mut sub_l = *x;
+                let mut sub_r = *y;
+
+                let (pair_l, found_l) = sub_l.check_split();
+                sub_l = pair_l;
+                if found_l {
+                    return (Pair(Box::new(sub_l), Box::new(sub_r)), true);
+                }
+                let (pair_r, found_r) = sub_r.check_split();
+                sub_r = pair_r;
+                if found_r {
+                    return (Pair(Box::new(sub_l), Box::new(sub_r)), true);
+                }
+                return (Pair(Box::new(sub_l), Box::new(sub_r)), false);
+            }
+        }
+    }
+
+    fn apply_overflow(self, value: usize, left: bool) -> Self {
+        match self {
+            Solo(x) => Solo(x + value),
+            Pair(x, y) => {
+                if left {
+                    let temp = *x;
+                    Pair(Box::new(temp.apply_overflow(value, left)), y)
+                } else {
+                    let temp = *y;
+                    Pair(x, Box::new(temp.apply_overflow(value, left)))
+                }
+            }
+        }
+    }
+
+    fn reduce(self) -> Self {
+        let mut next = self;
         loop {
             let (step, exploded) = next.check_explosion(0);
             next = step;
@@ -42,114 +131,16 @@ impl SnailPair {
                 }
             }
         }
-
         next
-    }
-
-    fn apply_overflow(&self, value: usize, left: bool) -> Self {
-        match self {
-            Solo(x) => Solo(*x + value),
-            Pair(x, y) => {
-                if left {
-                    let temp = Box::leak(x.clone());
-                    Pair(Box::new(temp.apply_overflow(value, left)), y.clone())
-                } else {
-                    let temp = Box::leak(y.clone());
-                    Pair(x.clone(), Box::new(temp.apply_overflow(value, left)))
-                }
-            }
-        }
-    }
-
-    fn check_explosion(&self, deep: usize) -> (Self, Option<(usize, usize)>) {
-        let next;
-        match self {
-            Solo(x) => {
-                return (Solo(*x), None);
-            }
-            Pair(x, y) => {
-                let sub_l = Box::leak(x.clone());
-                let sub_r = Box::leak(y.clone());
-
-                if let Solo(left) = sub_l {
-                    if let Solo(right) = sub_r {
-                        if deep == 4 {
-                            return (Solo(0), Some((*left, *right)));
-                        }
-                    }
-                }
-                let (pair_l, rest_l) = sub_l.check_explosion(deep + 1);
-                if let Some((x, y)) = rest_l {
-                    if y != 0 {
-                        *sub_r = sub_r.apply_overflow(y, true);
-                    }
-                    return (
-                        Pair(Box::new(pair_l), Box::new(sub_r.clone())),
-                        Some((x, 0)),
-                    );
-                } else {
-                    let (pair_r, rest_r) = sub_r.check_explosion(deep + 1);
-                    if let Some((x, y)) = rest_r {
-                        if x != 0 {
-                            *sub_l = sub_l.apply_overflow(x, false);
-                        }
-                        return (
-                            Pair(Box::new(sub_l.clone()), Box::new(pair_r)),
-                            Some((0, y)),
-                        );
-                    }
-                }
-
-                next = Pair(Box::new(sub_l.clone()), Box::new(sub_r.clone()));
-            }
-        }
-
-        (next, None)
-    }
-
-    fn check_split(&self) -> (Self, bool) {
-        match self {
-            Solo(x) => {
-                if *x >= 10 {
-                    let temp = *x as f32;
-                    let left = (temp / 2.0).floor() as usize;
-                    let right = (temp / 2.0).ceil() as usize;
-
-                    return (Pair(Box::new(Solo(left)), Box::new(Solo(right))), true);
-                }
-                return (Solo(*x), false);
-            }
-            Pair(x, y) => {
-                let sub_l = Box::leak(x.clone());
-                let sub_r = Box::leak(y.clone());
-
-                let (pair_l, found_l) = sub_l.check_split();
-                if found_l {
-                    return (Pair(Box::new(pair_l), y.clone()), true);
-                }
-                let (pair_r, found_r) = sub_r.check_split();
-                if found_r {
-                    return (Pair(x.clone(), Box::new(pair_r)), true);
-                }
-            }
-        }
-        (self.clone(), false)
     }
 
     fn get_magnitude(&self) -> usize {
         match self {
             Solo(x) => *x,
-            Pair(x, y) => {
-                let left = Box::leak(x.clone());
-                let right = Box::leak(y.clone());
-
-                3 * left.get_magnitude() + 2 * right.get_magnitude()
-            }
+            Pair(x, y) => 3 * x.get_magnitude() + 2 * y.get_magnitude(),
         }
     }
 }
-
-use SnailPair::*;
 
 fn get_pair(input: &[char], index: &mut usize) -> SnailPair {
     let mut l_pair = Solo(0);
