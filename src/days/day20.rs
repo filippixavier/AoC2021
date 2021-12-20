@@ -160,5 +160,71 @@ pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
 }
 
 pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
+    let (mut map, enhancer) = get_input();
+
+    // Value of a random point at infinite distance
+    let mut default_value = false;
+
+    for _ in 0..50 {
+        let mut next = HashMap::new();
+        let mut lights = map.keys().collect::<Vec<_>>();
+        lights.sort_unstable_by(|(x_a, y_a), (x_b, y_b)| {
+            if x_a != x_b {
+                x_a.cmp(x_b)
+            } else {
+                y_a.cmp(y_b)
+            }
+        });
+        let (min, max) = (*lights[0], **lights.last().unwrap());
+        for light in lights {
+            let neighbors = get_all_neighbors(*light);
+            next.insert(
+                *light,
+                get_new_point(&neighbors, &map, &enhancer, default_value),
+            );
+        }
+
+        for x in (min.0 - 1)..=(max.0 + 1) {
+            let point_min = (x, min.1 - 1);
+            let point_max = (x, max.1 + 1);
+
+            let neighbors = get_all_neighbors(point_min);
+            next.insert(
+                point_min,
+                get_new_point(&neighbors, &map, &enhancer, default_value),
+            );
+            let neighbors = get_all_neighbors(point_max);
+            next.insert(
+                point_max,
+                get_new_point(&neighbors, &map, &enhancer, default_value),
+            );
+        }
+
+        for y in (min.1 - 1)..(max.1 + 1) {
+            let point_min = (min.0 - 1, y);
+            let point_max = (max.0 + 1, y);
+
+            let neighbors = get_all_neighbors(point_min);
+            next.insert(
+                point_min,
+                get_new_point(&neighbors, &map, &enhancer, default_value),
+            );
+            let neighbors = get_all_neighbors(point_max);
+            next.insert(
+                point_max,
+                get_new_point(&neighbors, &map, &enhancer, default_value),
+            );
+        }
+
+        // compute new default value, since it may have changed thanks to the enhancer;
+        let neighbors = get_all_neighbors((0, 0));
+        default_value = get_new_point(&neighbors, &HashMap::new(), &enhancer, default_value);
+        map = next;
+    }
+    let lights_on = map.values().filter(|x| **x).count();
+
+    println!("Lights on: {}", lights_on);
+    // 5171 too low
+
     Ok(())
 }
