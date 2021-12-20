@@ -48,8 +48,10 @@ type Coordinates = Vec<Point>;
 
 #[derive(Debug)]
 struct Probe {
-    beacons: HashSet<Point>,
+    // Just to use as static
+    beacons: Option<HashSet<Point>>,
     anchors: Vec<Anchor>,
+    probes: Vec<Point>,
 }
 
 impl FromIterator<Point> for Probe {
@@ -65,11 +67,23 @@ impl FromIterator<Point> for Probe {
 
         anchors = Probe::get_sorted_anchors(coordinates);
 
-        Probe { beacons, anchors }
+        Probe {
+            beacons: Some(beacons),
+            anchors,
+            probes: vec![Point(0, 0, 0)],
+        }
     }
 }
 
 impl Probe {
+    const fn new() -> Self {
+        Probe {
+            beacons: None,
+            anchors: vec![],
+            probes: vec![],
+        }
+    }
+
     fn get_sorted_anchors(mut coordinates: Vec<Point>) -> Vec<Anchor> {
         let mut anchors = vec![];
 
@@ -168,11 +182,15 @@ impl Probe {
         transforms
     }
 
-    fn merge(&self, other: &Self, min_count: usize) -> Option<Self> {
+    fn merge(&self, other: &Self) -> Option<Self> {
         let mut merged = Probe {
-            beacons: self.beacons.clone(),
+            beacons: None,
             anchors: vec![],
+            probes: self.probes.clone(),
         };
+        let s_b = self.beacons.as_ref().unwrap();
+        let mut beacons = s_b.clone();
+        let o_b = other.beacons.as_ref().unwrap();
 
         if let Some(anchors) = self.common_anchors(other) {
             let transforms = Probe::get_transforms(&anchors);
@@ -180,7 +198,7 @@ impl Probe {
                 return None;
             }
             let (rotation, translate) = transforms.iter().collect::<Vec<_>>()[0];
-            for point in other.beacons.iter() {
+            for point in o_b.iter() {
                 let mut translated = *point;
                 for _ in 1..=rotation.0 {
                     translated = translated.rotate_x();
@@ -192,14 +210,13 @@ impl Probe {
                     translated = translated.rotate_z();
                 }
                 translated = translated + *translate;
-                merged.beacons.insert(translated);
-            }
-            if merged.beacons.intersection(&self.beacons).count() < min_count {
-                return None;
+                beacons.insert(translated);
             }
 
-            let coordinates: Coordinates = merged.beacons.clone().into_iter().collect();
+            let coordinates: Coordinates = beacons.clone().into_iter().collect();
             merged.anchors = Probe::get_sorted_anchors(coordinates);
+            merged.probes.push(*translate);
+            merged.beacons = Some(beacons);
         } else {
             return None;
         }
@@ -241,22 +258,48 @@ fn get_input() -> VecDeque<Probe> {
         })
         .collect::<VecDeque<Probe>>()
 }
+
+static mut MAPPEDOCEAN: Probe = Probe::new();
+
 pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
     let mut probes = get_input();
     let mut placed_prob = probes.pop_front().unwrap();
 
     while !probes.is_empty() {
         let current = probes.pop_front().unwrap();
-        if let Some(merged) = placed_prob.merge(&current, 12) {
+        if let Some(merged) = placed_prob.merge(&current) {
             placed_prob = merged;
         } else {
             probes.push_back(current);
         }
     }
-    println!("{}", placed_prob.beacons.len());
+    println!(
+        "Number of beacons: {}",
+        placed_prob.beacons.as_ref().unwrap().len()
+    );
+    unsafe {
+        MAPPEDOCEAN = placed_prob;
+    }
     Ok(())
 }
 
 pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
+    let mut max_dist = 0;
+    let mut probes;
+    unsafe {
+        probes = MAPPEDOCEAN.probes.clone();
+    }
+    while !probes.is_empty() {
+        let current = probes.pop().unwrap();
+
+        for other in probes.iter() {
+            let man_dist = (current.0 - other.0).abs()
+                + (current.1 - other.1).abs()
+                + (current.2 - other.2).abs();
+            max_dist = max_dist.max(man_dist);
+        }
+    }
+
+    println!("Vastness of the ocean: {}", max_dist);
     Ok(())
 }
