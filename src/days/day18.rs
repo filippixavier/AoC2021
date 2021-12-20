@@ -61,7 +61,7 @@ impl SnailPair {
                         if x != 0 {
                             sub_l = sub_l.apply_overflow(x, false);
                         }
-                        return (Pair(Box::new(sub_l.clone()), Box::new(sub_r)), Some((0, y)));
+                        return (Pair(Box::new(sub_l), Box::new(sub_r)), Some((0, y)));
                     }
                 }
 
@@ -82,7 +82,7 @@ impl SnailPair {
 
                     return (Pair(Box::new(Solo(left)), Box::new(Solo(right))), true);
                 }
-                return (Solo(x), false);
+                (Solo(x), false)
             }
             Pair(x, y) => {
                 let mut sub_l = *x;
@@ -98,7 +98,7 @@ impl SnailPair {
                 if found_r {
                     return (Pair(Box::new(sub_l), Box::new(sub_r)), true);
                 }
-                return (Pair(Box::new(sub_l), Box::new(sub_r)), false);
+                (Pair(Box::new(sub_l), Box::new(sub_r)), false)
             }
         }
     }
