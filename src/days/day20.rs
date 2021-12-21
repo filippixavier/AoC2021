@@ -62,33 +62,6 @@ fn get_all_neighbors(coordinate: (isize, isize)) -> Vec<(isize, isize)> {
         .collect()
 }
 
-fn display_lights(map: &LightMap) {
-    let mut lights = map.iter().collect::<Vec<(_, _)>>();
-    lights.sort_unstable_by(|(x_a, y_a), (x_b, y_b)| {
-        if x_a != x_b {
-            x_a.cmp(x_b)
-        } else {
-            y_a.cmp(y_b)
-        }
-    });
-    let (min, max) = (lights[0].0, *lights.last().unwrap().0);
-
-    for y in min.1..=max.1 {
-        for x in min.0..=max.0 {
-            print!(
-                "{}",
-                if map.get(&(x, y)).unwrap() == &true {
-                    '#'
-                } else {
-                    '.'
-                }
-            );
-        }
-        println!()
-    }
-    println!();
-}
-
 pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
     let (mut map, enhancer) = get_input();
 
@@ -224,7 +197,5 @@ pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
     let lights_on = map.values().filter(|x| **x).count();
 
     println!("Lights on: {}", lights_on);
-    // 5171 too low
-
     Ok(())
 }
