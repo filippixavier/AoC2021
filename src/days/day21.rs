@@ -55,7 +55,7 @@ pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
 }
 
 use std::collections::HashMap;
-fn get_universes_per_dice_sum() -> HashMap<u8, u8> {
+fn get_universes_per_dice_sum() -> Vec<(u8, u8)> {
     let mut proba = HashMap::new();
     for x in 1..=3 {
         for y in 1..=3 {
@@ -65,21 +65,25 @@ fn get_universes_per_dice_sum() -> HashMap<u8, u8> {
             }
         }
     }
-    proba
+    proba.into_iter().collect()
 }
 
 fn recurse_proba(
     score: [usize; 2],
     position: [usize; 2],
-    universes_per_dice_sum: &HashMap<u8, u8>,
+    universes_per_dice_sum: &[(u8, u8)],
     player: usize,
-    universes_amount: u64,
+    cache: &mut HashMap<(usize, usize, usize, usize, usize), [u64; 2]>,
 ) -> [u64; 2] {
+    if let Some(universes) = cache.get(&(score[0], score[1], position[0], position[1], player)) {
+        return *universes;
+    }
+
     let mut total_winning_universes = [0; 2];
 
-    for (&dice_result, &universes_generated) in universes_per_dice_sum {
+    for &(dice_result, universes_generated) in universes_per_dice_sum {
         let mut sub_score = score;
-        let total_universes = universes_amount * universes_generated as u64;
+        let universes_generated = universes_generated as u64;
 
         let mut sub_position = position;
         sub_position[player] = position[player] + dice_result as usize;
@@ -93,19 +97,24 @@ fn recurse_proba(
         sub_score[player] += sub_position[player];
 
         if sub_score[player] >= 21 {
-            total_winning_universes[player] += total_universes;
+            total_winning_universes[player] += universes_generated;
         } else {
             let sub_total = recurse_proba(
                 sub_score,
                 sub_position,
                 universes_per_dice_sum,
                 (player + 1) % 2,
-                total_universes,
+                cache,
             );
-            total_winning_universes[0] += sub_total[0];
-            total_winning_universes[1] += sub_total[1];
+            total_winning_universes[0] += sub_total[0] * universes_generated;
+            total_winning_universes[1] += sub_total[1] * universes_generated;
         }
     }
+
+    cache.insert(
+        (score[0], score[1], position[0], position[1], player),
+        total_winning_universes,
+    );
 
     total_winning_universes
 }
@@ -115,7 +124,9 @@ pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
     let proba = get_universes_per_dice_sum();
     let score = [0; 2];
 
-    let total_universes = recurse_proba(score, position, &proba, 0, 1);
+    let mut cache: HashMap<(usize, usize, usize, usize, usize), [u64; 2]> = HashMap::new();
+
+    let total_universes = recurse_proba(score, position, &proba, 0, &mut cache);
 
     println!(
         "Best player wins in {} universes",
