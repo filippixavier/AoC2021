@@ -56,7 +56,7 @@ pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
 
     Ok(())
 }
-
+#[derive(Debug, Clone)]
 struct Cuboid {
     p1: (isize, isize, isize),
     p2: (isize, isize, isize),
@@ -65,11 +65,13 @@ struct Cuboid {
 
 impl Cuboid {
     fn area(&self) -> isize {
-        let x = self.p2.0 - self.p1.0;
-        let y = self.p2.1 - self.p1.1;
-        let z = self.p2.2 - self.p1.2;
+        let x = (self.p1.0..=self.p2.0).count();
 
-        x * y * z
+        let y = (self.p1.1..=self.p2.1).count();
+
+        let z = (self.p1.2..=self.p2.2).count();
+
+        (x * y * z) as isize
     }
 
     fn intersect(&self, other: &Self) -> Option<Cuboid> {
@@ -83,65 +85,73 @@ impl Cuboid {
             self.p2.1.min(other.p2.1),
             self.p2.2.min(other.p2.2),
         );
-        return if p1.0 > p2.0 || p1.1 > p2.1 || p1.2 > p2.2 {
+        let cube = Cuboid {
+            p1,
+            p2,
+            lights: self.lights,
+        };
+        if cube.area() == 0 {
             None
         } else {
-            Some(Cuboid {
-                p1,
-                p2,
-                lights: self.lights,
-            })
-        };
+            Some(cube)
+        }
     }
 
     fn remaining(&self, intersected: &Self) -> Vec<Self> {
         let mut remaining = vec![];
+        // Up
         let mut child = Cuboid {
             p1: (self.p1.0, self.p1.1, intersected.p1.2),
-            p2: (intersected.p2.0, intersected.p1.1, intersected.p2.2),
+            p2: (intersected.p2.0, intersected.p1.1 - 1, intersected.p2.2),
             lights: self.lights,
         };
-        if child.p1.1 != child.p2.1 {
+        if child.p1.1 != intersected.p1.1 {
             remaining.push(child);
         }
+        // Right
         child = Cuboid {
-            p1: (intersected.p2.0, self.p1.1, intersected.p1.2),
+            p1: (intersected.p2.0 + 1, self.p1.1, intersected.p1.2),
             p2: (self.p2.0, intersected.p2.1, intersected.p2.2),
             lights: self.lights,
         };
-        if child.p1.0 != child.p2.0 {
+        if child.p2.0 != intersected.p2.0 {
             remaining.push(child);
         }
+        // Down
         child = Cuboid {
-            p1: (intersected.p1.0, intersected.p2.1, intersected.p1.2),
+            p1: (intersected.p1.0, intersected.p2.1 + 1, intersected.p1.2),
             p2: (self.p2.0, self.p2.1, intersected.p2.2),
             lights: self.lights,
         };
-        if child.p1.1 != child.p2.1 {
+        if child.p2.1 != intersected.p2.1 {
             remaining.push(child);
         }
+
+        // Left
         child = Cuboid {
             p1: (self.p1.0, intersected.p1.1, intersected.p1.2),
-            p2: (intersected.p2.0, self.p2.1, intersected.p2.2),
+            p2: (intersected.p1.0 - 1, self.p2.1, intersected.p2.2),
             lights: self.lights,
         };
-        if child.p1.0 != child.p2.0 {
+        if child.p1.0 != intersected.p1.0 {
             remaining.push(child);
         }
+        // Front
         child = Cuboid {
             p1: (self.p1.0, self.p1.1, self.p1.2),
-            p2: (self.p2.0, self.p2.1, intersected.p1.2),
+            p2: (self.p2.0, self.p2.1, intersected.p1.2 - 1),
             lights: self.lights,
         };
-        if child.p1.2 != child.p2.2 {
+        if child.p1.2 != intersected.p1.2 {
             remaining.push(child);
         }
+        // Back
         child = Cuboid {
-            p1: (self.p1.0, self.p1.1, intersected.p1.2),
+            p1: (self.p1.0, self.p1.1, intersected.p2.2 + 1),
             p2: (self.p2.0, self.p2.1, self.p2.2),
             lights: self.lights,
         };
-        if child.p1.2 != child.p2.2 {
+        if child.p2.2 != intersected.p2.2 {
             remaining.push(child);
         }
         remaining
@@ -160,17 +170,39 @@ pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
             p2: (range_x.1, range_y.1, range_z.1),
             lights,
         };
+        let mut intersectors: Vec<Cuboid> = vec![cube.clone()];
 
-        let mut covered_area = cube.area();
+        if cubes.is_empty() && cube.lights {
+            lights_count += cube.area();
+        } else {
+            for other in cubes.iter().rev() {
+                let mut nexterceptors = vec![];
 
-        let mut intersectors: Vec<Cuboid> = vec![];
-
-        for other_cube in cubes.iter().rev() {
-            let intersec = cube.intersect(&other_cube);
-            if cube.lights && other_cube.lights {}
+                for cube in intersectors {
+                    if let Some(intersection) = cube.intersect(other) {
+                        if cube.lights && !other.lights {
+                            lights_count += intersection.area();
+                        } else if !cube.lights && other.lights {
+                            lights_count -= intersection.area();
+                        }
+                        nexterceptors.append(&mut cube.remaining(&intersection));
+                    } else {
+                        nexterceptors.push(cube);
+                    }
+                }
+                intersectors = nexterceptors;
+            }
+            if cube.lights {
+                for intersector in intersectors {
+                    lights_count += intersector.area();
+                    cubes.push(intersector);
+                }
+            }
         }
         cubes.push(cube);
     }
+
+    println!("There are {} cubes in total", lights_count);
 
     Ok(())
 }
