@@ -167,5 +167,69 @@ pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
 }
 
 pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
+    let mut alus = vec![(Alu::new(), 1, 0, String::new())];
+    let operations = get_input();
+    let mut valid_id = String::new();
+
+    while !alus.is_empty() {
+        let mut crashed = false;
+        let (mut alu, mut id_val, mut index, mut id) = alus.pop().unwrap();
+        while index < operations.len() {
+            let (operation, operators) = &operations[index];
+            match *operation {
+                "inp" => {
+                    if let Ok(value) = &operations[index + 5].1[1].parse::<isize>() {
+                        if *value <= 9 {
+                            let target_id = (alu.z % 26) + *value;
+                            if target_id > 0 && target_id <= 9 {
+                                alu.inp(operators[0], target_id);
+                                id += &target_id.to_string();
+                                index += 1;
+                                continue;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    if id_val <= 9 {
+                        alus.push((alu, id_val + 1, index, id.clone()))
+                    }
+                    alu.inp(operators[0], id_val);
+                    id += &id_val.to_string();
+                    id_val = 1;
+                }
+                "add" => {
+                    alu.add(operators[0], operators[1]);
+                }
+                "mul" => alu.mul(operators[0], operators[1]),
+                "div" => {
+                    crashed = !alu.div(operators[0], operators[1]);
+                    if crashed {
+                        break;
+                    }
+                }
+                "mod" => {
+                    crashed = !alu.modulo(operators[0], operators[1]);
+                    if crashed {
+                        break;
+                    }
+                }
+                "eql" => {
+                    alu.eql(operators[0], operators[1]);
+                }
+                _ => unreachable!(),
+            }
+            index += 1;
+        }
+        if crashed {
+            continue;
+        }
+        if alu.z == 0 {
+            valid_id = id;
+            break;
+        }
+    }
+
+    println!("Smallest valid MONAD: {}", valid_id);
     Ok(())
 }
