@@ -274,13 +274,48 @@ pub fn first_star() -> Result<(), Box<dyn Error + 'static>> {
         }
     }
 
-    println!("{}", min_erergy);
+    println!("Minimal energy spent: {}", min_erergy);
     Ok(())
 }
 
 pub fn second_star() -> Result<(), Box<dyn Error + 'static>> {
     let add_on = r"  #D#C#B#A#
   #D#B#A#C#";
-    get_input(Some(add_on));
+    let (amphibs, map) = get_input(Some(add_on));
+    let mut heap: BinaryHeap<State> = BinaryHeap::new();
+    let mut min_erergy = 0;
+
+    let mut visited_states: HashSet<String> = HashSet::new();
+
+    heap.push(State::new(amphibs, vec![], 0, &map));
+
+    while !heap.is_empty() {
+        let state = heap.pop().unwrap();
+        if state.unplaced.is_empty() {
+            min_erergy = state.energy_spent;
+            break;
+        }
+
+        if !visited_states.insert(state.signature) {
+            continue;
+        }
+
+        for (i, amphib) in state.unplaced.iter().enumerate() {
+            let movements = amphib.new_coordinates(&map, &state.unplaced, &state.placed);
+            for (coordinates, energy_spent) in movements {
+                let mut next_ampbibs = state.unplaced.clone();
+                next_ampbibs[i].position = coordinates;
+                let next_state = State::new(
+                    next_ampbibs,
+                    state.placed.clone(),
+                    state.energy_spent + energy_spent,
+                    &map,
+                );
+                heap.push(next_state);
+            }
+        }
+    }
+
+    println!("Minimal energy spent: {} using unfolded map", min_erergy);
     Ok(())
 }
